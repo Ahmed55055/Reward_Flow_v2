@@ -1,0 +1,6 @@
+@Reward_Flow_v2_HostAddress = http://localhost:5088
+
+GET {{Reward_Flow_v2_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
