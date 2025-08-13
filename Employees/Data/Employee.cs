@@ -15,7 +15,6 @@ public class Employee
     public bool IsActive { get; set; }
     public byte? Status { get; set; }
 
-    public virtual User.Data.User CreatedByNavigation { get; set; } = null!;
     public virtual Department? Department { get; set; }
     public virtual Faculty? Faculty { get; set; }
     public virtual JobTitle? JobTitleNavigation { get; set; }

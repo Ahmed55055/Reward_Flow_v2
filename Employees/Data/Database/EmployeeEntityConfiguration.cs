@@ -39,10 +39,10 @@ public class EmployeeEntityConfiguration : IEntityTypeConfiguration<Employee>
         builder.ToTable("employees", t =>
             t.HasCheckConstraint("CHK_Salary_NonNegative", "[salary] >= 0 OR [salary] IS NULL"));
         
-        builder.HasOne<User.Data.User>(e => e.CreatedByNavigation)
+        builder.HasOne<User.Data.User>()
             .WithMany()
             .HasForeignKey(e => e.CreatedBy)
-            .HasPrincipalKey(u => u.Id);
+            .HasPrincipalKey(u=>u.Id);
 
         builder.HasOne(e => e.Department)
             .WithMany(d => d.Employees)

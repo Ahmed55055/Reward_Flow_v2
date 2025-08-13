@@ -10,6 +10,7 @@ using Reward_Flow_v2.Employees;
 using Reward_Flow_v2.Common.UserIdRetrieval;
 using Reward_Flow_v2.Common.Tokenization;
 using Reward_Flow_v2.Employees.Common;
+using Reward_Flow_v2.Common;
 
 namespace Reward_Flow_v2;
 
@@ -26,6 +27,7 @@ public sealed class Program
         builder.Services.AddHttpContextAccessor();
 
         // Register services
+        AppConfiguration.Initialize(builder.Configuration);
         builder.Services.AddScoped<IUserIdRetrievalService, UserIdRetrievalService>();
         builder.Services.AddScoped<ITokenizer,Tokenizer>();
         builder.Services.AddScoped<IEmployeeTokenService, EmployeeTokenService>();

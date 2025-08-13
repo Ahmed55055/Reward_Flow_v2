@@ -12,4 +12,5 @@ internal static class EmployeeApiPath
     public const string SearchByName = $"{EmployeeRootApi}/search";
     public const string Update = $"{EmployeeRootApi}/{{id}}";
     public const string Delete = $"{EmployeeRootApi}/{{id}}";
+    public const string BulkInsert = $"{EmployeeRootApi}/BulkInsert";
 }

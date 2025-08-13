@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Extensions.Data;
 
 namespace Reward_Flow_v2.Common.Tokenization;
 
@@ -18,8 +19,11 @@ public class Tokenizer : ITokenizer
 
     public string HashToken(string token)
     {
-        using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hash);
+        var rawBytes = Encoding.UTF8.GetBytes(token);
+
+        using HashAlgorithm xxhash = XXHash32.Create();
+        var result = xxhash.ComputeHash(rawBytes);
+
+        return Convert.ToBase64String(result.Take(16).ToArray());
     }
 }

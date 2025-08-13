@@ -4,7 +4,7 @@ using Reward_Flow_v2.Common;
 using Reward_Flow_v2.Employees.Common;
 using Reward_Flow_v2.Employees.Data;
 using Reward_Flow_v2.Employees.Data.Database;
-
+using System.Linq;
 namespace Reward_Flow_v2.Employees.SearchEmployeesByName;
 
 public static class SearchEmployeesByName
@@ -29,12 +29,16 @@ public static class SearchEmployeesByName
         try
         {
             var employeeIds = await tokenService.SearchEmployeesByNameAsync(name, currentUserId, limit, cancellationToken);
-            
+
+            var ids = employeeIds.ToList();
+
             var employees = await dbContext.Employee
                 .Where(e => employeeIds.Contains(e.EmployeeId) && e.CreatedBy == currentUserId)
                 .ToListAsync(cancellationToken);
 
-            return Results.Ok(employees);
+            var orderedEmployees = employees.OrderBy(e => ids.IndexOf(e.EmployeeId));
+
+            return Results.Ok(orderedEmployees);
         }
         catch (Exception)
         {

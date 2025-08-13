@@ -1,3 +1,4 @@
+using Reward_Flow_v2.Employees.BulkInsertEmployees;
 using Reward_Flow_v2.Employees.CreateEmployee;
 using Reward_Flow_v2.Employees.DeleteEmployee;
 using Reward_Flow_v2.Employees.GetEmployeeById;
@@ -19,5 +20,6 @@ public static class EmployeeEndpoints
         app.MapSearchEmployeesByName();
         app.MapUpdateEmployee();
         app.MapDeleteEmployee();
+        app.MapBulkInsertEmployee();
     }
 }
