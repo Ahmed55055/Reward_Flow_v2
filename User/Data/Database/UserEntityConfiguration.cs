@@ -67,6 +67,13 @@ public class UserEntityConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(u => u.RefreshToken)
+            .HasColumnName("refresh_token")
+            .HasMaxLength(500);
+
+        builder.Property(u => u.RefreshTokenExpiry)
+            .HasColumnName("refresh_token_expiry");
+
         builder.HasOne(u => u.UserRole)
             .WithMany()
             .HasForeignKey(u => u.RoleId)

@@ -1,4 +1,5 @@
-﻿using Reward_Flow_v2.User.AuthService.Login;
+﻿using Reward_Flow_v2.User.AuthService;
+using Reward_Flow_v2.User.AuthService.Login;
 using Reward_Flow_v2.User.AuthService.Register;
 
 namespace Reward_Flow_v2.User;
@@ -9,5 +10,6 @@ internal static class UserEndpoints
     {
         builder.MapRegisterUser();
         builder.MapUserLogin();
+        builder.MapRefreshToken();
     }
 }

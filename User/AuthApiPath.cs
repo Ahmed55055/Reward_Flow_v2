@@ -7,4 +7,5 @@ internal static class AuthApiPath
 
     public const string Register = $"{AuthRootApi}/Register";
     public const string Login = $"{AuthRootApi}/login";
+    public const string RefreshToken = $"{AuthRootApi}/refresh-token";
 }

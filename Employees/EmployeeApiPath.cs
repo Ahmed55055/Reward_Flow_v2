@@ -6,6 +6,7 @@ internal static class EmployeeApiPath
     private const string EmployeeRootApi = $"{ApiPath.Route}/{Tag}";
 
     public const string Create = $"{EmployeeRootApi}";
+    public const string GetAll = $"{EmployeeRootApi}";
     public const string GetById = $"{EmployeeRootApi}/{{id}}";
     public const string GetByName = $"{EmployeeRootApi}/name/{{name}}";
     public const string GetByNationalNumber = $"{EmployeeRootApi}/national/{{nationalNumber}}";

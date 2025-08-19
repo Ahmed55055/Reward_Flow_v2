@@ -19,6 +19,8 @@ namespace Reward_Flow_v2.User.Data
         public string? ProfilePictureUrl { get; set; }
         public int PlanId { get; set; }
         public Plan? Plan { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiry { get; set; }
 
         public User()
         {

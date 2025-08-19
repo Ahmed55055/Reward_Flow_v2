@@ -1,60 +1,44 @@
-﻿
-using FluentResults;
-using Microsoft.AspNetCore.Authentication.OAuth.Claims;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Reward_Flow_v2.User.Data;
 using Reward_Flow_v2.User.Data.Database;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Reward_Flow_v2.User.AuthService.Login;
+namespace Reward_Flow_v2.User.AuthService;
 
-public static class Login
+public static class RefreshToken
 {
-    public record Request(string username, string password);
+    public record Request(string RefreshToken);
     public record Response(string JWTToken, string RefreshToken);
 
-    public static void MapUserLogin(this IEndpointRouteBuilder builder)
+    public static void MapRefreshToken(this IEndpointRouteBuilder builder)
     {
-        builder.MapPost(AuthApiPath.Login, HandlerAsync)
+        builder.MapPost(AuthApiPath.RefreshToken, HandlerAsync)
             .Produces<Response>(StatusCodes.Status200OK)
-            .Produces<IEnumerable<FluentValidation.Results.ValidationFailure>>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
             .WithTags(AuthApiPath.Tag);
     }
 
     private static async Task<IResult> HandlerAsync(Request request, UserDbContext _dbContext, IConfiguration configuration, CancellationToken cancellationToken)
     {
-        var validationResult = new LoginUserRequestValidator().Validate(request);
-        
-        if (!validationResult.IsValid)
-            return Results.BadRequest(validationResult.Errors);
-
-        var user = await _dbContext.User            
-            .FirstOrDefaultAsync(u => u.Username == request.username, cancellationToken);
+        var user = await _dbContext.User
+            .FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken && u.RefreshTokenExpiry > DateTime.UtcNow, cancellationToken);
 
         if (user == null)
-            return Results.BadRequest("Invalid username or password");
+            return Results.Unauthorized();
 
-        var passwordHasher = new PasswordHasher<Data.User>();
-        var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.password);
+        var newJwtToken = CreateToken(user, configuration);
+        var newRefreshToken = GenerateRefreshToken();
 
-        if (result == PasswordVerificationResult.Failed)
-            return Results.BadRequest("Invalid username or password");
-
-        var token = CreateToken(user, configuration);
-        var refreshToken = GenerateRefreshToken();
-        
-        user.LastVisit = DateTime.UtcNow;
-        user.RefreshToken = refreshToken;
+        user.RefreshToken = newRefreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        user.LastVisit = DateTime.UtcNow;
+        
         _dbContext.Update(user);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(new Response(token, refreshToken));
+        return Results.Ok(new Response(newJwtToken, newRefreshToken));
     }
 
     private static string CreateToken(Data.User user, IConfiguration configuration)
@@ -63,7 +47,7 @@ public static class Login
         {
             new Claim (ClaimTypes.NameIdentifier, user.UUID.ToString()),
             new Claim (ClaimTypes.Name, user.Username),
-            new Claim (ClaimTypes.Role, Enum.GetName(typeof( UserRoleEnum),user.RoleId)!)
+            new Claim (ClaimTypes.Role, Enum.GetName(typeof(Data.UserRoleEnum), user.RoleId)!)
         };
 
         var key = new SymmetricSecurityKey(
