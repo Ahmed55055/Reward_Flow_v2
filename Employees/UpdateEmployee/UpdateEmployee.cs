@@ -11,15 +11,15 @@ namespace Reward_Flow_v2.Employees.UpdateEmployee;
 
 public static partial class UpdateEmployee
 {
-    //public struct IsUpdated<T>
+    //public struct HasValue<T>
     //{
     //    public bool IsSet;
     //    public T Value;
     //}
     //public record reqest
     //{
-    //    IsUpdated<string?> Name;
-    //    IsUpdated<string?> NationalNumber;
+    //    HasValue<string?> Name;
+    //    HasValue<string?> NationalNumber;
     //}
     public record Request(string? Name, string? NationalNumber, string? AccountNumber, float? Salary, int? FacultyId, int? DepartmentId, byte? JobTitle, byte? Status);
 
