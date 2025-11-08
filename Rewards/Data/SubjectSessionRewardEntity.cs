@@ -9,7 +9,7 @@ public class SubjectSessionRewardEntity
     public int Id { get; set; }
     public int SessionRewardId { get; set; }
     public int NumberOfSessions { get; set; }
-    public int SubjectId { get; set; }
+    public int SemesterSubjectId { get; set; }
     public int StudentsNumber { get; set; }
     public int? MainEmployeeId { get; set; }
     public int MaxNumberOfEmployees {  get; set; }

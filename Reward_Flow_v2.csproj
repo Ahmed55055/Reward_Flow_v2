@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Doc\Project Context\" />
     <Folder Include="Employees\BisunessRules\" />
   </ItemGroup>
 

@@ -8,12 +8,12 @@ public sealed class RewardDbContext(DbContextOptions<RewardDbContext> options) :
     
     public DbSet<Subject> Subject => Set<Subject>();
     public DbSet<RewardEntity> Reward => Set<RewardEntity>();
-    public DbSet<SubjectSemester> SubjectSemester => Set<SubjectSemester>();
-    public DbSet<EmployeeSessions> EmployeeSessions => Set<EmployeeSessions>();
-    public DbSet<EmployeeReward> EmployeeReward => Set<EmployeeReward>();
+    public DbSet<SemesterSubject> SubjectSemester => Set<SemesterSubject>();
+
     public DbSet<SessionRewardEntity> SessionRewardEntity => Set<SessionRewardEntity>();
     public DbSet<EmployeeSessionRewardEntity> EmployeeSessionRewardEntity => Set<EmployeeSessionRewardEntity>();
     public DbSet<SubjectSessionRewardEntity> SubjectSessionRewardEntity => Set<SubjectSessionRewardEntity>();
+    public DbSet<EmployeeReward> EmployeeReward => Set<EmployeeReward>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,10 +21,11 @@ public sealed class RewardDbContext(DbContextOptions<RewardDbContext> options) :
         modelBuilder.ApplyConfiguration(new SubjectEntityConfiguration());
         modelBuilder.ApplyConfiguration(new RewardEntityConfiguration());
         modelBuilder.ApplyConfiguration(new SubjectSemesterEntityConfiguration());
-        modelBuilder.ApplyConfiguration(new SessionsRewardEntityConfiguration());
-        modelBuilder.ApplyConfiguration(new EmployeeRewardEntityConfiguration());
+
         modelBuilder.ApplyConfiguration(new SessionRewardEntityConfiguration());
         modelBuilder.ApplyConfiguration(new SubjectSessionRewardEntityConfiguration());
         modelBuilder.ApplyConfiguration(new EmployeeSessionRewardEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new EmployeeRewardConfiguration());
+
     }
 }

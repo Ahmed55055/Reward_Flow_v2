@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Reward_Flow_v2.Rewards.SubjectSessionReward;
 
 namespace Reward_Flow_v2.Rewards.Data.Database;
 
@@ -15,5 +14,9 @@ public class EmployeeSessionRewardEntityConfiguration : IEntityTypeConfiguration
         builder.Property(esr => esr.Id).HasColumnName("id");
         builder.Property(esr => esr.SubjectSessionRewardId).HasColumnName("subject_session_reward_id");
         builder.Property(esr => esr.EmployeeId).HasColumnName("employee_id");
+        
+        builder.HasOne(esr => esr.SubjectSessionReward)
+            .WithMany(ssr => ssr.Employees)
+            .HasForeignKey(esr => esr.SubjectSessionRewardId);
     }
 }

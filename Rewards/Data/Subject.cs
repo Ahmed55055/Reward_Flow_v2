@@ -8,5 +8,5 @@ public class Subject
     public bool IsPractical { get; set; }
     public float SubjectPrice { get; set; }
     
-    public virtual ICollection<SubjectSemester> SubjectSemesters { get; set; } = new List<SubjectSemester>();
+    public virtual ICollection<SemesterSubject> SubjectSemesters { get; set; } = new List<SemesterSubject>();
 }

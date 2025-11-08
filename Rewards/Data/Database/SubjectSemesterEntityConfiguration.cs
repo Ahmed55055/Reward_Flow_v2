@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Reward_Flow_v2.Rewards.Data.Database;
 
-public class SubjectSemesterEntityConfiguration : IEntityTypeConfiguration<SubjectSemester>
+public class SubjectSemesterEntityConfiguration : IEntityTypeConfiguration<SemesterSubject>
 {
-    public void Configure(EntityTypeBuilder<SubjectSemester> builder)
+    public void Configure(EntityTypeBuilder<SemesterSubject> builder)
     {
         builder.ToTable("subject_semesters");
         builder.HasKey(ss => ss.Id);

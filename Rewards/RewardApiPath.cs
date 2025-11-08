@@ -11,5 +11,7 @@ internal static class RewardApiPath
     public const string GetSessionsRewardById = $"{SessionsReward}/{{id}}";
     public const string UpdateSessionsReward = $"{SessionsReward}/{{id}}";
     public const string DeleteSessionsReward = $"{SessionsReward}/{{id}}";
-    public const string GetSessionsRewardsByReward = $"{SessionsReward}/reward/{{rewardId}}";
+    public const string GetSessionsRewardsByRewardId = $"{SessionsReward}/reward/{{rewardId}}";
+    public const string AddEmployeeSessions = $"{SessionsReward}/{{id}}/employees";
+    public const string AddMultipleEmployeeSessions = $"{SessionsReward}/{{id}}/employees/batch";
 }

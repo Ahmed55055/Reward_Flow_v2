@@ -9,4 +9,8 @@ public class EmployeeSessionRewardEntity
     public int Id { get; set; }
     public required int SubjectSessionRewardId { get; set; }
     public required int EmployeeId { get; set; }
+    public int NumberOfSessions {  get; set; }
+    public float Salary {  get; set; }
+    
+    public virtual SubjectSessionRewardEntity SubjectSessionReward { get; set; } = null!;
 }

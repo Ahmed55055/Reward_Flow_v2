@@ -1,50 +1,50 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Reward_Flow_v2.Common;
+using Reward_Flow_v2.Common.EmployeeLookup;
+using Reward_Flow_v2.Employees.Data;
+using Reward_Flow_v2.Rewards;
 using Reward_Flow_v2.Rewards.Common;
 using Reward_Flow_v2.Rewards.Data;
 using Reward_Flow_v2.Rewards.Data.Database;
-using Reward_Flow_v2.Rewards;
+using Reward_Flow_v2.Rewards.SessionsReward.Common;
+using Reward_Flow_v2.Rewards.SessionsReward.Dtos;
+using Reward_Flow_v2.Rewards.SessionsReward.Interface;
+using System.Linq;
 using System.Threading.Tasks;
-using Reward_Flow_v2.Common;
 
 namespace Reward_Flow_v2.Rewards.SessionsReward;
-public sealed class SessionRewards : Reward
+public sealed partial class SessionRewards : Reward, ISessionReward
 {
     public int SessionRewardId { get => SessionRewardEntity.SessionRewardId; }
-    public int? year { get => SessionRewardEntity.year; set => SessionRewardEntity.year = value; }
-    public byte? Semester { get => SessionRewardEntity.semester; set => SessionRewardEntity.semester = value; }
-    public float Percentage { get => SessionRewardEntity.Percentage; set => SessionRewardEntity.Percentage = value; }
+    public int? year { get => SessionRewardEntity.year; }
+    public byte? Semester { get => SessionRewardEntity.semester; }
+    public float Percentage { get => SessionRewardEntity.Percentage; }
     private SessionRewardEntity SessionRewardEntity { get; set; }
+    private readonly ISessionRewardCalculator rewardCalculator;
+    private readonly ISessionRewardRules rules;
+    private readonly IDbContextFactory<RewardDbContext> contextFactory;
+    private readonly IEmployeeLookupService employeeLookup;
 
-    public SessionRewards(RewardDbContext context, int createdBy, float percentage, string rewardName = "Untitled")
-        : base(context, createdBy, (int)RewardTypes.Sessions, rewardName)
+    private SessionRewards(IDbContextFactory<RewardDbContext> contextFactory, ISessionRewardCalculator rewardCalculator, ISessionRewardRules rules, IEmployeeLookupService employeeLookup, int createdBy)
+        : base(contextFactory.CreateDbContext(), createdBy)
     {
+        this.contextFactory = contextFactory;
+        this.employeeLookup = employeeLookup;
         SessionRewardEntity = new SessionRewardEntity();
-        Percentage = percentage;
+        this.rewardCalculator = rewardCalculator;
+        this.rules = rules;
+        InitializeNew(createdBy, (int)RewardTypes.Sessions);
     }
 
-    private SessionRewards(SessionRewardEntity sessionRewardEntity, RewardEntity rewardEntity, RewardDbContext dbContext)
-        : base(rewardEntity, dbContext)
+    private SessionRewards(IDbContextFactory<RewardDbContext> contextFactory, SessionRewardEntity sessionRewardEntity, ISessionRewardCalculator rewardCalculator, ISessionRewardRules rules, IEmployeeLookupService employeeLookup, RewardEntity rewardEntity)
+        : base(contextFactory.CreateDbContext(), rewardEntity)
     {
+        this.contextFactory = contextFactory;
+        this.employeeLookup = employeeLookup;
         SessionRewardEntity = sessionRewardEntity;
+        this.rewardCalculator = rewardCalculator;
+        this.rules = rules;
     }
-    
-    public static async Task<SessionRewards?> Find(int sessionRewardId, RewardDbContext dbContext, int CreatedBy)
-    {
-        // Check is the same user asking for the reward first to keep privacy code first
-
-
-        var sessionRewardEntity =
-            await dbContext.SessionRewardEntity
-            .Include(sr => sr.Reward)
-            .Where(sr => sr.SessionRewardId == sessionRewardId && sr.Reward.CreatedBy == CreatedBy)
-            .FirstOrDefaultAsync();
-
-        if (sessionRewardEntity is null)
-            return null;
-
-        return new SessionRewards(sessionRewardEntity, sessionRewardEntity.Reward, dbContext);
-    }
-
     public override FileStream ToPDF()
     {
         throw new NotImplementedException();
@@ -55,69 +55,239 @@ public sealed class SessionRewards : Reward
         throw new NotImplementedException();
     }
 
-    public override bool UpdateTotal()
+    public override async Task UpdateTotal()
     {
-        throw new NotImplementedException();
+        using var context = contextFactory.CreateDbContext();
+
+        var employeeSessionData = await GetEmployeesTotalSessionsAsync(context);
+
+        var employeeIds = employeeSessionData.Select(e => e.EmployeeId);
+        var employeeSalaries = await GetEmployeesSalariesAsync(employeeIds);
+
+
+        var employeeRewards = await context.EmployeeReward
+            .Where(er => er.RewardId == this.RewardId && !er.IsUpdated)
+            .ToListAsync();
+
+        foreach (var empData in employeeSessionData)
+        {
+            employeeSalaries.TryGetValue(empData.EmployeeId, out float salary);
+
+            var allowedSessions = GetAllowedSessions(empData.TotalSessions);
+            var total = rewardCalculator.CalculateTotal(allowedSessions, salary, this.Percentage);
+
+            UpdateOrCreateEmployeeReward(context, employeeRewards, empData, total);
+        }
+
+        await context.SaveChangesAsync();
     }
 
-    public override async Task<bool> SaveAsync()
+    private async Task<bool> Save()
     {
-        if (!await base.SaveAsync())
+        try
+        {
+            await base.SaveAsync();
+
+            if (Mode == enMode.AddNew)
+            {
+                SessionRewardEntity.RewardId = this.RewardId;
+                await _dbContext.SessionRewardEntity.AddAsync(SessionRewardEntity);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AssignEmployeeToSubjectAsync(SessionSubjectDto dto)
+    {
+        try
+        {
+            using var context = contextFactory.CreateDbContext();
+            var subjectSessionReward = await GetOrCreateSubjectSessionReward(dto, context);
+            subjectSessionReward.AddEmployees(dto.Employees.Select(e => e.EmployeeId));
+            await MarkEmployeeRewardsAsOutdated(dto.Employees.Select(e => e.EmployeeId), context);
+            await context.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            using var context = contextFactory.CreateDbContext();
+            var subjectSessionReward = await GetOrCreateSubjectSessionReward(dto, context);
+            subjectSessionReward.AddEmployees(dto.Employees.Select(e => e.EmployeeId));
+            await MarkEmployeeRewardsAsOutdated(dto.Employees.Select(e => e.EmployeeId), context);
+            await context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AssignEmployeeToSubjectAsync(IEnumerable<SessionSubjectDto> dtos)
+    {
+        try
+        {
+            using var context = contextFactory.CreateDbContext();
+            var allEmployeeIds = dtos.SelectMany(dto => dto.Employees.Select(e => e.EmployeeId)).Distinct();
+            foreach (var dto in dtos)
+            {
+                var subjectSessionReward = await GetOrCreateSubjectSessionReward(dto, context);
+                subjectSessionReward.AddEmployees(dto.Employees.Select(e => e.EmployeeId));
+            }
+            await MarkEmployeeRewardsAsOutdated(allEmployeeIds, context);
+            await context.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            using var context = contextFactory.CreateDbContext();
+            var allEmployeeIds = dtos.SelectMany(dto => dto.Employees.Select(e => e.EmployeeId)).Distinct();
+            foreach (var dto in dtos)
+            {
+                var subjectSessionReward = await GetOrCreateSubjectSessionReward(dto, context);
+                subjectSessionReward.AddEmployees(dto.Employees.Select(e => e.EmployeeId));
+            }
+            await MarkEmployeeRewardsAsOutdated(allEmployeeIds, context);
+            await context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task<SubjectSessionReward> GetOrCreateSubjectSessionReward(SessionSubjectDto dto, RewardDbContext context)
+    {
+        var SSR = await SubjectSessionReward.FindBySubjectAndSession(dto.SubjectId, this.Semester.Value, this.SessionRewardId, context);
+
+        if (SSR is not null)
+            return SSR;
+
+        var subjectSessionReward = new SubjectSessionReward(
+            this.SessionRewardId,
+            (byte)rewardCalculator.CalculateSessions(dto.NumberOfStudents),
+            dto.SubjectId,
+            dto.NumberOfStudents,
+            dto.Employees.First().EmployeeId,
+            context
+        );
+
+        return subjectSessionReward;
+    }
+
+    private bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        if (ex.InnerException?.Message is not string message)
             return false;
 
-        if (Mode == enMode.AddNew)
-        {
-            SessionRewardEntity.RewardId = this.RewardId;
-            await _dbContext.SessionRewardEntity.AddAsync(SessionRewardEntity);
-        }
+        message = message.ToLowerInvariant();
 
-        await _dbContext.SaveChangesAsync();
-        return true;
+        return message.Contains("unique constraint") ||
+               message.Contains("unique index") ||
+               message.Contains("duplicate key") ||
+               message.Contains("duplicate entry");
     }
 
-    public async Task<bool> AddSessions(int subjectId, int employeeId, int numberOfStudents)
+    public record EmployeeSessionData(int EmployeeId, int TotalSessions);
+    
+    void UpdateOrCreateEmployeeReward(RewardDbContext context, List<EmployeeReward> employeeRewards, EmployeeSessionData empData, float total)
     {
-        var isSubjectExsits =
-            await (
-            from subject in _dbContext.SubjectSemester
-            where subject.SubjectId == subjectId && subject.SemesterNumber == Semester
-            select true)
-            .AnyAsync();
-
-        SubjectSemester subjectSemester = null;
-        if (!isSubjectExsits)
+        var empReward = employeeRewards.FirstOrDefault(er => er.EmployeeId == empData.EmployeeId);
+        if (empReward == null)
         {
-            subjectSemester = await CreateSubjectSemester(subjectId, numberOfStudents);
-
-            if (subjectSemester is null)
-                return false;
+            empReward = new EmployeeReward
+            {
+                RewardId = this.RewardId,
+                EmployeeId = empData.EmployeeId,
+                Total = total,
+                IsUpdated = true
+            };
+            context.EmployeeReward.Add(empReward);
         }
-
-        var employeeSessions = new EmployeeSessions
+        else
         {
-            SemesterSubjectId = subjectSemester.SubjectId,
-            EmpId = employeeId,
-            SessionRewardId = SessionRewardId,
-            NumOfSessions = rewardCalculator.CalculateSessions(numberOfStudents)
-        };
-
-        _dbContext.EmployeeSessions.Add(employeeSessions);
-
+            empReward.Total = total;
+            empReward.IsUpdated = true;
+        }
     }
 
-    private async Task<SubjectSemester?> CreateSubjectSemester(int subjectId, int numberOfStudents)
+    async Task<IEnumerable<EmployeeSessionData>> GetEmployeesTotalSessionsAsync(RewardDbContext context)
     {
-        SubjectSemester subjectSemester = new SubjectSemester
+        return await (
+            from empSession in context.EmployeeSessionRewardEntity
+            join subjectSession in context.SubjectSessionRewardEntity on empSession.SubjectSessionRewardId equals subjectSession.Id
+            join empReward in context.EmployeeReward on empSession.EmployeeId equals empReward.EmployeeId into empRewardGroup
+            from empReward in empRewardGroup.DefaultIfEmpty()
+            where subjectSession.SessionRewardId == this.SessionRewardId && !empReward.IsUpdated
+            group new { empSession.EmployeeId, subjectSession.NumberOfSessions } by empSession.EmployeeId into g
+            select new EmployeeSessionData
+            (
+                g.Key,
+                g.Sum(x => x.NumberOfSessions)
+            )
+        ).ToListAsync();
+    }
+
+    async Task<Dictionary<int, float>> GetEmployeesSalariesAsync(IEnumerable<int> employeeIds)
+    {
+        return (await
+            employeeLookup.GetEmployeesSalaryById(employeeIds))
+            .ToDictionary(e => e.EmployeeId, e => e.Salary);
+    }
+
+    private int GetAllowedSessions(int totalSessions)
+    {
+        return rules.IsWithInMaximumNumberOfSession(totalSessions)
+                ? totalSessions
+                : rules.MaxSessionsNumber;
+    }
+
+    private async Task MarkEmployeeRewardsAsOutdated(IEnumerable<int> employeeIds, RewardDbContext context)
+    {
+        var employeeRewards = await context.EmployeeReward
+            .Where(er => er.RewardId == this.RewardId && employeeIds.Contains(er.EmployeeId))
+            .ToListAsync();
+
+        foreach (var empReward in employeeRewards)
         {
-            SubjectId = subjectId,
-            NumberOfStudents = numberOfStudents,
-            SemesterNumber = Semester.Value
-        };
+            empReward.IsUpdated = false;
+        }
+    }
 
-        _dbContext.SubjectSemester.Add(subjectSemester);
-        await _dbContext.SaveChangesAsync();
+    public async Task<EmployeeRewardDto?> GetEmployeeReward(int employeeId)
+    {
+        using var context = contextFactory.CreateDbContext();
+        var employeeReward = await context.EmployeeReward
+            .Where(er => er.RewardId == this.RewardId && er.EmployeeId == employeeId)
+            .FirstOrDefaultAsync();
+            
+        return employeeReward is not null 
+            ? new EmployeeRewardDto(employeeReward.Id, employeeReward.EmployeeId, employeeReward.Total)
+            : null;
+    }
 
-        return subjectSemester;
+    public async Task<IEnumerable<EmployeeRewardDto>> GetEmployeesReward()
+    {
+        using var context = contextFactory.CreateDbContext();
+        return await context.EmployeeReward
+            .Where(er => er.RewardId == this.RewardId)
+            .Select(er => new EmployeeRewardDto(er.Id, er.EmployeeId, er.Total))
+            .ToListAsync();
+    }
+
+    public async Task<float> GetRewardTotal()
+    {
+        using var context = contextFactory.CreateDbContext();
+        return await context.EmployeeReward
+            .Where(er => er.RewardId == this.RewardId)
+            .SumAsync(er => er.Total);
     }
 }
 

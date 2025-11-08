@@ -12,6 +12,6 @@ public class RewardEntity
     public int RewardType { get; set; }
     public int NumberOfEmployees { get; set; }
 
-    public virtual ICollection<EmployeeSessions> SessionsRewards { get; set; } = new List<EmployeeSessions>();
+
     public virtual ICollection<EmployeeReward> EmployeeRewards { get; set; } = new List<EmployeeReward>();
 }
