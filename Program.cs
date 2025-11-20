@@ -1,16 +1,25 @@
-using Scalar.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Reward_Flow_v2.Common;
+using Reward_Flow_v2.Common.EmployeeLookup;
 using Reward_Flow_v2.Common.ErrorHandling;
+using Reward_Flow_v2.Common.Tokenization;
+using Reward_Flow_v2.Common.UserIdRetrieval;
+using Reward_Flow_v2.Employees;
+using Reward_Flow_v2.Employees.Common;
+using Reward_Flow_v2.Employees.Data.Database;
+using Reward_Flow_v2.Employees.Shared;
+using Reward_Flow_v2.Rewards;
+using Reward_Flow_v2.Rewards.Data.Database;
+using Reward_Flow_v2.Rewards.SessionsReward;
+using Reward_Flow_v2.Rewards.SessionsReward.Common;
+using Reward_Flow_v2.Rewards.SessionsReward.EndPoints;
+using Reward_Flow_v2.Rewards.SessionsReward.Interface;
+using Reward_Flow_v2.User;
 using Reward_Flow_v2.User.AuthService;
 using Reward_Flow_v2.User.Data.Database;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Reward_Flow_v2.User;
-using Reward_Flow_v2.Employees;
-using Reward_Flow_v2.Common.UserIdRetrieval;
-using Reward_Flow_v2.Common.Tokenization;
-using Reward_Flow_v2.Employees.Common;
-using Reward_Flow_v2.Common;
+using Scalar.AspNetCore;
 
 namespace Reward_Flow_v2;
 
@@ -29,15 +38,25 @@ public sealed class Program
         // Register services
         AppConfiguration.Initialize(builder.Configuration);
         builder.Services.AddScoped<IUserIdRetrievalService, UserIdRetrievalService>();
-        builder.Services.AddScoped<ITokenizer,Tokenizer>();
+        builder.Services.AddScoped<ITokenizer, Tokenizer>();
         builder.Services.AddScoped<IEmployeeTokenService, EmployeeTokenService>();
-        
-        builder.Services.AddDbContext<UserDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-        builder.Services.AddDbContext<Reward_Flow_v2.Employees.Data.Database.EmployeeDbContext>(options =>
+        builder.Services.AddScoped<ISessionRewardCalculator, SessionsRewardCalculator>();
+        builder.Services.AddScoped<ISessionRewardRules, SessionRewardRules>();
+        builder.Services.AddScoped<ISessionRewardFactory, SessionRewards.SessionRewardFactory>();
+        builder.Services.AddScoped<IEmployeeLookupService,EmployeeLookupService>();
+
+
+        builder.Services.AddDbContextFactory<RewardDbContext>( options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-        
+        builder.Services.AddDbContext<UserDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddDbContext<EmployeeDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddDbContext<RewardDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -55,7 +74,7 @@ public sealed class Program
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
-        
+
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -74,6 +93,7 @@ public sealed class Program
 
         app.MapUsers();
         app.MapEmployeeEndpoints();
+        app.MapSessionRewardEndpoints();
 
         app.Run();
     }

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ArchitectureDecisionLog/10 Use ON DELETE CASCADE.md",
+                "file": "Project Context/Project_Analysis_Context.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "10 Use ON DELETE CASCADE"
+              "title": "Project_Analysis_Context"
             }
           }
         ]
@@ -160,6 +160,7 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "bases:Create new base": false,
       "switcher:Open quick switcher": false,
       "graph:Open graph view": false,
       "canvas:Create new canvas": false,
@@ -170,8 +171,9 @@
   },
   "active": "73ad9c697687c279",
   "lastOpenFiles": [
-    "ArchitectureDecisionLog/09 Private User ID Retrieval Decision.md",
+    "ArchitectureDecisionLog/11 Use Self-Contained Operations Pattern.md",
     "ArchitectureDecisionLog/10 Use ON DELETE CASCADE.md",
+    "ArchitectureDecisionLog/09 Private User ID Retrieval Decision.md",
     "ArchitectureDecisionLog/01 Record architecture decisions.md",
     "The Way Of Using N-gram.md",
     "Levenshtein Distance And N-gram Analysis.md",

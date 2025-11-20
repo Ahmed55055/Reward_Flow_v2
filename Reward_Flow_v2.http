@@ -1,6 +1,15 @@
-@Reward_Flow_v2_HostAddress = http://localhost:5088
+@Reward_Flow_v2_HostAddress = https://localhost:7202
 
 GET {{Reward_Flow_v2_HostAddress}}/weatherforecast/
 Accept: application/json
+
+###
+
+POST {{Reward_Flow_v2_HostAddress}}/api/Rewards/sessions
+Content-Type: application/json
+
+{
+  //Request
+}
 
 ###
