@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="deploy\.dockerignore" />
     <File Path="deploy\docker-compose.yaml" />
     <File Path="README.md" />
   </Folder>
