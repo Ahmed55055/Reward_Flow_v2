@@ -1,9 +1,9 @@
 <Solution>
   <Folder Name="/Solution Items/">
-    <File Path="docker-compose.yaml" />
+    <File Path="deploy\docker-compose.yaml" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="RewardFlow.API\RewardFlow.API.csproj" />
-  <Project Path="RewardFlow.IntegrationTests/RewardFlow.IntegrationTests.csproj" />
-  <Project Path="RewardFlow.UnitTest\RewardFlow.UnitTest.csproj" />
+  <Project Path="src/RewardFlow.API/RewardFlow.API.csproj" />
+  <Project Path="src/RewardFlow.IntegrationTests/RewardFlow.IntegrationTests.csproj" />
+  <Project Path="src/RewardFlow.UnitTest/RewardFlow.UnitTest.csproj" />
 </Solution>
