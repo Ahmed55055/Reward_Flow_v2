@@ -1,0 +1,42 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-reward-flow
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Test123!@#
+      - MSSQL_PID=Express
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Test123!@# -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rewardflow-network
+
+  api:
+    build:
+      context: .
+      dockerfile: RewardFlow.API/Dockerfile
+    container_name: rewardflow-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=RewardFlow;User=sa;Password=Test123!@#;TrustServerCertificate=true
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - rewardflow-network
+
+volumes:
+  sqlserver_data:
+
+networks:
+  rewardflow-network:
+    driver: bridge
